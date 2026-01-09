@@ -5,98 +5,102 @@ from typing import Annotated, Any
 from fastapi import APIRouter, HTTPException
 from fastapi.params import Body
 
+from src.api.dependencies import GetStdioMCPClient, XConnectionID
 from src.api.schemas import (
-    ExecuteToolResponse,
-    StdioConnectRequest,
-    ToolInfo,
+    StdioConnectionInfoResponseSchema,
+    StdioConnectionRequestSchema,
+    StdioDisconnectResponseSchema,
+    ToolExecutionResponseSchema,
+    ToolInfoResponseSchema,
 )
-from src.mcp.client import (
-    call_tool,
-    get_connection_info,
-    is_connected,
-    list_tools,
-)
-from src.mcp.client import (
-    connect as mcp_connect,
-)
-from src.mcp.client import disconnect as mcp_disconnect
 
 router = APIRouter(prefix="/stdio", tags=["MCP stdio Operations"])
 
 
-@router.post("/connect")
-async def connect(request: StdioConnectRequest):
+@router.post(
+    "/connect",
+    response_model=StdioConnectionInfoResponseSchema,
+    status_code=200,
+)
+async def connect(
+    client: GetStdioMCPClient,
+    request: StdioConnectionRequestSchema,
+):
     """Connect to MCP server (single active connection)."""
 
-    success = await mcp_connect(
-        command=request.command, args=request.args, env=request.env
-    )
-
-    if not success:
-        raise HTTPException(
-            status_code=500, detail="Failed to connect to MCP server"
-        )
-
-    return {
-        "success": True,
-        "message": "Connected",
-        "info": get_connection_info(),
-    }
-
-
-@router.post("/disconnect")
-async def disconnect():
-    """Disconnect from MCP server."""
-
-    success = await mcp_disconnect()
-    return {"success": success}
-
-
-@router.get("/status")
-async def status():
-    """Get connection status."""
-
-    connected = is_connected()
-
-    return {
-        "connected": connected,
-        "info": get_connection_info() if connected else None,
-    }
-
-
-@router.get("/list-tools", response_model=list[ToolInfo])
-async def get_tools():
-    """Get list of available tools."""
-
-    if not is_connected():
-        raise HTTPException(status_code=400, detail="No active connection")
-
     try:
-        tools = await list_tools()
-        return tools
+        connection_info = await client.connect(
+            name=request.name,
+            command=request.command,
+            args=request.args,
+            env=request.env,
+        )
+        return StdioConnectionInfoResponseSchema.model_validate(
+            connection_info, extra="ignore"
+        )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.post("/execute", response_model=ExecuteToolResponse)
+@router.post("/disconnect", response_model=StdioDisconnectResponseSchema)
+async def disconnect(connection_id: XConnectionID, client: GetStdioMCPClient):
+    """Disconnect from MCP server."""
+
+    try:
+        return await client.disconnect(connection_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.get(
+    "/status",
+    response_model=StdioConnectionInfoResponseSchema,
+    status_code=200,
+)
+async def status(connection_id: XConnectionID, client: GetStdioMCPClient):
+    """Get connection status."""
+
+    connection_info = client.get_connection_info(connection_id)
+    if not connection_info:
+        raise HTTPException(
+            status_code=404, detail="Connection not found. Please reconnect."
+        )
+
+    try:
+        return StdioConnectionInfoResponseSchema.model_validate(
+            connection_info, extra="ignore"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.get("/list-tools", response_model=list[ToolInfoResponseSchema])
+async def get_tools(connection_id: XConnectionID, client: GetStdioMCPClient):
+    """Get list of available tools."""
+
+    try:
+        tools = await client.list_tools(connection_id)
+        return [
+            ToolInfoResponseSchema.model_validate(tool, extra="ignore")
+            for tool in tools
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.post("/execute", response_model=ToolExecutionResponseSchema)
 async def execute(
+    connection_id: XConnectionID,
+    client: GetStdioMCPClient,
     tool_name: Annotated[str, Body(embed=True)],
     arguments: Annotated[dict[str, Any], Body(embed=True)],
 ):
     """Execute a tool."""
 
-    if not is_connected():
-        raise HTTPException(status_code=400, detail="No active connection")
-
     try:
-        result = await call_tool(tool_name=tool_name, arguments=arguments)
-
-        return ExecuteToolResponse(
-            success=not result.get("isError", False),
-            result=result.get("content"),
-            error=None,
+        return await client.call_tool(
+            connection_id, tool_name=tool_name, arguments=arguments
         )
-
     except Exception as e:
-        return ExecuteToolResponse(success=False, result=None, error=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
