@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from .mcp import router as mcp_router
+from .stdio import router as stdio_router
 
-router = APIRouter()
-router.include_router(mcp_router)
+router = APIRouter(prefix="/mcp", tags=["MCP Operations"])
+router.include_router(stdio_router)
