@@ -4,10 +4,10 @@ import logging
 from contextlib import suppress
 from typing import cast
 
-from mcp.client.stdio import stdio_client
 from mcp.types import TextContent
 
 from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
 
 _current_session: ClientSession | None = None
 _current_transport = None
