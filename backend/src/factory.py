@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.endpoints import router as api_router
 from src.lifespan import register_lifespan_events
+from src.mcp.manager import ConnectionManager
 
 
 def create_fastapi() -> FastAPI:
@@ -12,6 +13,8 @@ def create_fastapi() -> FastAPI:
 
     app = FastAPI(lifespan=register_lifespan_events)
     app.include_router(api_router)
+
+    app.state.connection_manager = ConnectionManager()
 
     app.add_middleware(
         CORSMiddleware,
