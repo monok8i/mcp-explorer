@@ -1,4 +1,4 @@
-"""MCP API endpoints."""
+"""MCP stdio API endpoints."""
 
 from typing import Annotated, Any
 
@@ -6,8 +6,8 @@ from fastapi import APIRouter, HTTPException
 from fastapi.params import Body
 
 from src.api.schemas import (
-    ConnectRequest,
     ExecuteToolResponse,
+    StdioConnectRequest,
     ToolInfo,
 )
 from src.mcp.client import (
@@ -21,11 +21,11 @@ from src.mcp.client import (
 )
 from src.mcp.client import disconnect as mcp_disconnect
 
-router = APIRouter(prefix="/mcp", tags=["MCP Operations"])
+router = APIRouter(prefix="/stdio", tags=["MCP stdio Operations"])
 
 
 @router.post("/connect")
-async def connect(request: ConnectRequest):
+async def connect(request: StdioConnectRequest):
     """Connect to MCP server (single active connection)."""
 
     success = await mcp_connect(

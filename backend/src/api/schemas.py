@@ -3,7 +3,7 @@
 from pydantic import BaseModel, Field
 
 
-class ConnectRequest(BaseModel):
+class StdioConnectRequest(BaseModel):
     """Request to connect to MCP server."""
 
     name: str
