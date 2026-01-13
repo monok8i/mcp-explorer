@@ -4,8 +4,7 @@ import uuid
 from contextlib import suppress
 from dataclasses import asdict
 
-from mcp import ClientSession
-from mcp.client.stdio import StdioServerParameters, stdio_client
+from mcp.client.stdio import StdioServerParameters
 from src.mcp.connection import (
     Connection,
     SSEConnectionConfig,
@@ -41,13 +40,9 @@ class ConnectionManager:
 
         match config:
             case StdioConnectionConfig():
-                _transport = stdio_client(
-                    StdioServerParameters(**asdict(config))
-                )
-                read_stream, write_stream = await _transport.__aenter__()
-                _session = ClientSession(read_stream, write_stream)
-                await _session.__aenter__()
-                await _session.initialize()
+                # Use the context manager properly without manually calling __aenter__
+                # The stdio_client and session will be managed by Connection itself
+                server_params = StdioServerParameters(**asdict(config))
 
                 connection = Connection(
                     id=connection_id,
@@ -56,8 +51,9 @@ class ConnectionManager:
                     type=ConnectionType.STDIO,
                     config=config,
                 )
-                connection.session = _session
-                connection.transport = _transport
+
+                # Initialize the connection properly
+                await connection.initialize(server_params)
                 self._stdio_connections[connection_id] = connection
 
             case SSEConnectionConfig():
@@ -87,11 +83,7 @@ class ConnectionManager:
 
         if connection.type == ConnectionType.STDIO:
             with suppress(Exception):
-                if connection.session:
-                    await connection.session.__aexit__(None, None, None)
-
-                    if connection.transport:
-                        await connection.transport.__aexit__(None, None, None)
+                await connection.cleanup()
 
             del self._stdio_connections[connection_id]
 

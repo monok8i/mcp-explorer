@@ -1,30 +1,20 @@
 """Connection implementation."""
 
-from contextlib import AbstractAsyncContextManager
+import asyncio
+from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Any
 
-from anyio.streams.memory import (
-    MemoryObjectReceiveStream,
-    MemoryObjectSendStream,
-)
 from mcp.client.session import ClientSession
-from mcp.shared.message import SessionMessage
 from mcp.types import TextContent
 
+from mcp.client.stdio import StdioServerParameters, stdio_client
 from src.mcp.connection.config import (
     SSEConnectionConfig,
     StdioConnectionConfig,
 )
 from src.mcp.connection.type import ConnectionType, ToolExecutionResultDict
 from src.mcp.exceptions import UnsupportedResponseTypeError
-
-type Transport = AbstractAsyncContextManager[
-    tuple[
-        MemoryObjectReceiveStream[SessionMessage | Exception],
-        MemoryObjectSendStream[SessionMessage],
-    ]
-]
 
 
 @dataclass
@@ -36,7 +26,11 @@ class Connection:
     config: SSEConnectionConfig | StdioConnectionConfig
 
     __session: ClientSession | None = field(init=False, default=None)
-    __transport: Transport | None = field(init=False, default=None)
+    __lifecycle_task: asyncio.Task[None] | None = field(
+        init=False, default=None
+    )
+    __ready_event: asyncio.Event | None = field(init=False, default=None)
+    __shutdown_event: asyncio.Event | None = field(init=False, default=None)
 
     @property
     def session(self) -> ClientSession | None:
@@ -48,21 +42,68 @@ class Connection:
         """Set the MCP client session."""
         self.__session = value
 
-    @property
-    def transport(
-        self,
-    ) -> Transport | None:
-        """Get the transport object."""
-        return self.__transport
-
-    @transport.setter
-    def transport(self, value: Transport | None) -> None:
-        """Set the transport object."""
-        self.__transport = value
-
     def is_connected(self) -> bool:
         """Check if the connection is active."""
         return self.__session is not None
+
+    async def initialize(self, server_params: StdioServerParameters) -> None:
+        """Initialize the connection lifecycle in a dedicated task."""
+        if self.__lifecycle_task:
+            return
+
+        self.__ready_event = asyncio.Event()
+        self.__shutdown_event = asyncio.Event()
+        self.__lifecycle_task = asyncio.create_task(
+            self.__run_session(server_params)
+        )
+
+        await self.__ready_event.wait()
+
+        if self.__lifecycle_task.done():
+            exc = self.__lifecycle_task.exception()
+            if exc is not None:
+                raise exc
+
+    async def cleanup(self) -> None:
+        """Clean up the connection resources."""
+        if self.__shutdown_event and not self.__shutdown_event.is_set():
+            self.__shutdown_event.set()
+
+        if self.__lifecycle_task:
+            with suppress(Exception):
+                await self.__lifecycle_task
+
+        self.__lifecycle_task = None
+        self.__ready_event = None
+        self.__shutdown_event = None
+        self.__session = None
+
+    async def __run_session(
+        self, server_params: StdioServerParameters
+    ) -> None:
+        """Run the stdio client and session inside a single task."""
+        try:
+            async with (
+                stdio_client(server_params) as (
+                    read_stream,
+                    write_stream,
+                ),
+                ClientSession(read_stream, write_stream) as session,
+            ):
+                self.__session = session
+                await session.initialize()
+
+                if self.__ready_event and not self.__ready_event.is_set():
+                    self.__ready_event.set()
+
+                if self.__shutdown_event:
+                    await self.__shutdown_event.wait()
+        except Exception:
+            if self.__ready_event and not self.__ready_event.is_set():
+                self.__ready_event.set()
+            raise
+        finally:
+            self.__session = None
 
     async def call_tool(
         self, tool_name: str, *args: Any, **kwargs: Any
