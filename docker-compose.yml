@@ -1,0 +1,33 @@
+version: "3.9"
+
+networks:
+  mcp-explorer:
+    name: mcp-explorer
+    driver: bridge
+
+services:
+  frontend:
+    container_name: mcp-explorer-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    networks:
+      - mcp-explorer
+
+    environment:
+      - NODE_ENV=production
+
+  backend:
+    container_name: mcp-explorer-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/src/:/app/src/
+
+    networks:
+      - mcp-explorer
