@@ -10,10 +10,18 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
 
-RUN apk add --no-cache git bash
+# system deps + node (npm includes npx)
+RUN apk add --no-cache \
+    git \
+    bash \
+    nodejs \
+    npm
 
-RUN apk add --no-cache gcc python3-dev musl-dev linux-headers
-
+RUN apk add --no-cache \
+    gcc \
+    python3-dev \
+    musl-dev \
+    linux-headers
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-install-project --no-dev
@@ -26,12 +34,18 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 RUN rm -f pyproject.toml uv.lock .python-version \
     && rm -rf /app/.cache
 
+
 ### ───────────────────────────────────────────────
 ### Runtime stage
 ### ───────────────────────────────────────────────
 FROM python:3.13-alpine AS runtime
 
 WORKDIR /app
+
+# install node + npm (+ npx)
+RUN apk add --no-cache \
+    nodejs \
+    npm
 
 COPY --from=builder /app /app
 
