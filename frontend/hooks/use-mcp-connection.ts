@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react"
 import type { Connection, Tool, StdioConnectionConfig, ExecuteResult } from "@/lib/types"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://mcp-explorer-backend:8000"
 const STORAGE_KEY = "mcp_connection_id"
 
 export function useMCPConnection() {
