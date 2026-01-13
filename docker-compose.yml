@@ -16,6 +16,9 @@ services:
     networks:
       - mcp-explorer
 
+    volumes:
+      - ./frontend/:/app/
+
     environment:
       - NODE_ENV=production
 
