@@ -36,7 +36,7 @@ export function ConnectionSidebar({
   onClearError,
 }: ConnectionSidebarProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [showDetails, setShowDetails] = useState(false)
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
   const [formData, setFormData] = useState<StdioConnectionConfig>({
     name: "",
     command: "",
@@ -82,7 +82,13 @@ export function ConnectionSidebar({
       }
       await onDisconnect()
       await onConnect(config)
+      setDetailsDialogOpen(false)
     }
+  }
+
+  const handleDisconnect = async () => {
+    await onDisconnect()
+    setDetailsDialogOpen(false)
   }
 
   if (collapsed) {
@@ -207,84 +213,85 @@ export function ConnectionSidebar({
 
           {/* Connection Card */}
           {connection && (
-            <Card
-              className="cursor-pointer transition-all hover:shadow-soft-lg rounded-xl border-border/50"
-              onClick={() => setShowDetails(!showDetails)}
-            >
-              <CardHeader className="p-4">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium">{connection.name}</CardTitle>
-                  <div className="flex items-center gap-2">
+            <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+              <DialogTrigger asChild>
+                <Card className="cursor-pointer transition-all hover:shadow-soft-lg rounded-xl border-border/50">
+                  <CardHeader className="p-4">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-medium">{connection.name}</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-2 w-2 rounded-full bg-success animate-pulse" />
+                        <span className="text-xs text-muted-foreground">Connected</span>
+                      </div>
+                    </div>
+                  </CardHeader>
+                </Card>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-lg rounded-2xl max-h-[85vh] flex flex-col">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <span>{connection.name}</span>
                     <span className="flex h-2 w-2 rounded-full bg-success animate-pulse" />
-                    <span className="text-xs text-muted-foreground">Connected</span>
-                  </div>
-                </div>
-              </CardHeader>
-
-              {showDetails && (
-                <CardContent className="p-4 pt-0 space-y-4">
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Type</span>
-                      <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded-md">{connection.type}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Command</span>
-                      <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded-md">
-                        {connection.config.command}
-                      </span>
-                    </div>
-                    {connection.config.args.length > 0 && (
+                  </DialogTitle>
+                </DialogHeader>
+                <ScrollArea className="flex-1 -mx-6 px-6">
+                  <div className="space-y-4 pb-4">
+                    {/* Connection Info */}
+                    <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Args</span>
-                        <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded-md truncate max-w-32">
-                          {connection.config.args.join(" ")}
+                        <span className="text-muted-foreground">Type</span>
+                        <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded-md">{connection.type}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Command</span>
+                        <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded-md">
+                          {connection.config.command}
                         </span>
                       </div>
-                    )}
-                  </div>
+                      {connection.config.args.length > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Args</span>
+                          <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded-md">
+                            {connection.config.args.join(" ")}
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
-                  {/* Raw JSON */}
-                  <details className="text-xs group">
-                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
-                      View Raw JSON
-                    </summary>
-                    <pre className="mt-2 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs">
-                      {JSON.stringify(connection, null, 2)}
-                    </pre>
-                  </details>
-
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 rounded-lg bg-transparent"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleReconnect()
-                      }}
-                      disabled={isConnecting}
-                    >
-                      <RefreshCw className={cn("mr-1.5 h-3 w-3", isConnecting && "animate-spin")} />
-                      Reconnect
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 rounded-lg text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30 bg-transparent"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onDisconnect()
-                      }}
-                    >
-                      <Unplug className="mr-1.5 h-3 w-3" />
-                      Disconnect
-                    </Button>
+                    {/* Raw JSON */}
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Raw JSON</p>
+                      <pre className="overflow-auto rounded-lg bg-muted p-3 font-mono text-xs max-h-64">
+                        {JSON.stringify(connection, null, 2)}
+                      </pre>
+                    </div>
                   </div>
-                </CardContent>
-              )}
-            </Card>
+                </ScrollArea>
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-4 border-t border-border/50">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 rounded-lg bg-transparent"
+                    onClick={handleReconnect}
+                    disabled={isConnecting}
+                  >
+                    <RefreshCw className={cn("mr-1.5 h-3 w-3", isConnecting && "animate-spin")} />
+                    Reconnect
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 rounded-lg text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30 bg-transparent"
+                    onClick={handleDisconnect}
+                  >
+                    <Unplug className="mr-1.5 h-3 w-3" />
+                    Disconnect
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           )}
 
           {/* Empty State */}

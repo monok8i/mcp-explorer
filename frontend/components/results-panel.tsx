@@ -1,12 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Trash2, ChevronDown, CheckCircle, XCircle, Clock } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Trash2, CheckCircle, XCircle, Clock } from "lucide-react"
 import type { ExecutionResult } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -63,7 +63,7 @@ interface ResultCardProps {
 }
 
 function ResultCard({ result }: ResultCardProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [dialogOpen, setDialogOpen] = useState(false)
   const isError = result.result.isError
 
   const getContentText = () => {
@@ -74,16 +74,15 @@ function ResultCard({ result }: ResultCardProps) {
   }
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card
-        className={cn(
-          "transition-all rounded-xl border-border/50",
-          isError && "border-destructive/30 bg-destructive/5",
-          isOpen && "shadow-soft",
-        )}
-      >
-        <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer p-4 hover:bg-accent/30 rounded-t-xl transition-colors">
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <DialogTrigger asChild>
+        <Card
+          className={cn(
+            "cursor-pointer transition-all rounded-xl border-border/50 hover:shadow-soft",
+            isError && "border-destructive/30 bg-destructive/5",
+          )}
+        >
+          <CardHeader className="p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -96,33 +95,51 @@ function ResultCard({ result }: ResultCardProps) {
                 </div>
                 <p className="text-xs text-muted-foreground mt-1.5 ml-6">{result.timestamp.toLocaleTimeString()}</p>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Badge
-                  variant="secondary"
-                  className={cn(
-                    "rounded-md text-xs font-medium",
-                    isError
-                      ? "bg-destructive/10 text-destructive border-destructive/20"
-                      : "bg-success/10 text-success border-success/20",
-                  )}
-                >
-                  {isError ? "Error" : "Success"}
-                </Badge>
-                <ChevronDown
-                  className={cn("h-4 w-4 text-muted-foreground transition-transform", isOpen && "rotate-180")}
-                />
-              </div>
+              <Badge
+                variant="secondary"
+                className={cn(
+                  "rounded-md text-xs font-medium shrink-0",
+                  isError
+                    ? "bg-destructive/10 text-destructive border-destructive/20"
+                    : "bg-success/10 text-success border-success/20",
+                )}
+              >
+                {isError ? "Error" : "Success"}
+              </Badge>
             </div>
           </CardHeader>
-        </CollapsibleTrigger>
-
-        <CollapsibleContent>
-          <CardContent className="p-4 pt-0 space-y-4">
+        </Card>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-xl rounded-2xl max-h-[85vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {isError ? (
+              <XCircle className="h-5 w-5 text-destructive shrink-0" />
+            ) : (
+              <CheckCircle className="h-5 w-5 text-success shrink-0" />
+            )}
+            <span className="truncate">{result.toolName}</span>
+            <Badge
+              variant="secondary"
+              className={cn(
+                "rounded-md text-xs font-medium ml-auto",
+                isError
+                  ? "bg-destructive/10 text-destructive border-destructive/20"
+                  : "bg-success/10 text-success border-success/20",
+              )}
+            >
+              {isError ? "Error" : "Success"}
+            </Badge>
+          </DialogTitle>
+          <p className="text-xs text-muted-foreground">{result.timestamp.toLocaleString()}</p>
+        </DialogHeader>
+        <ScrollArea className="flex-1 -mx-6 px-6">
+          <div className="space-y-4 pb-4">
             {/* Arguments */}
             {Object.keys(result.arguments).length > 0 && (
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-2">Arguments</p>
-                <pre className="overflow-auto rounded-lg bg-muted p-3 text-xs font-mono">
+                <pre className="overflow-auto rounded-lg bg-muted p-3 text-xs font-mono max-h-48">
                   {JSON.stringify(result.arguments, null, 2)}
                 </pre>
               </div>
@@ -142,17 +159,15 @@ function ResultCard({ result }: ResultCardProps) {
             </div>
 
             {/* Raw JSON */}
-            <details className="text-xs group">
-              <summary className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors font-medium">
-                View Raw Response
-              </summary>
-              <pre className="mt-2 overflow-auto rounded-lg bg-muted p-3 font-mono">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Raw Response</p>
+              <pre className="overflow-auto rounded-lg bg-muted p-3 font-mono text-xs max-h-64">
                 {JSON.stringify(result.result, null, 2)}
               </pre>
-            </details>
-          </CardContent>
-        </CollapsibleContent>
-      </Card>
-    </Collapsible>
+            </div>
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
   )
 }
