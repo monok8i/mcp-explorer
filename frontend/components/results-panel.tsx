@@ -17,7 +17,7 @@ interface ResultsPanelProps {
 
 export function ResultsPanel({ results, onClear }: ResultsPanelProps) {
   return (
-    <div className="flex w-96 flex-col rounded-2xl bg-card shadow-soft overflow-hidden">
+    <div className="flex w-96 flex-col rounded-2xl bg-card shadow-sm border border-border/50 overflow-hidden">
       {/* Header */}
       <div className="flex h-14 items-center justify-between px-5 border-b border-border/50">
         <div className="flex items-center gap-2">
@@ -89,7 +89,7 @@ function ResultCard({ result }: ResultCardProps) {
       <DialogTrigger asChild>
         <Card
           className={cn(
-            "cursor-pointer transition-all rounded-xl border-border/50 hover:shadow-soft",
+            "cursor-pointer transition-all rounded-xl border-border/50 hover:shadow-md overflow-hidden",
             isError && "border-destructive/30 bg-destructive/5",
           )}
         >
