@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Trash2, CheckCircle, XCircle, Clock } from "lucide-react"
+import { Trash2, CheckCircle, XCircle, Clock, Copy, Check } from "lucide-react"
 import type { ExecutionResult } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -64,13 +64,24 @@ interface ResultCardProps {
 
 function ResultCard({ result }: ResultCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
   const isError = result.result.isError
 
   const getContentText = () => {
     if (!result.result.content || result.result.content.length === 0) {
       return "No content returned"
     }
-    return result.result.content.map((c) => (c.type === "text" ? c.text : JSON.stringify(c))).join("\n")
+    return result.result.content.map((c) => (c.type === "text" ? c.text : JSON.stringify(c, null, 2))).join("\n")
+  }
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(getContentText())
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error("Failed to copy:", err)
+    }
   }
 
   return (
