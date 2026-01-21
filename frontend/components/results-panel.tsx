@@ -100,7 +100,7 @@ function ResultCard({ result }: ResultCardProps) {
                   {isError ? (
                     <XCircle className="h-4 w-4 text-destructive shrink-0" />
                   ) : (
-                    <CheckCircle className="h-4 w-4 text-success shrink-0" />
+                    <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
                   )}
                   <CardTitle className="text-sm font-medium truncate">{result.toolName}</CardTitle>
                 </div>
@@ -112,7 +112,7 @@ function ResultCard({ result }: ResultCardProps) {
                   "rounded-md text-xs font-medium shrink-0",
                   isError
                     ? "bg-destructive/10 text-destructive border-destructive/20"
-                    : "bg-success/10 text-success border-success/20",
+                    : "bg-green-500/10 text-green-600 border-green-500/20",
                 )}
               >
                 {isError ? "Error" : "Success"}
@@ -121,22 +121,25 @@ function ResultCard({ result }: ResultCardProps) {
           </CardHeader>
         </Card>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-xl rounded-2xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent
+        className="sm:max-w-2xl rounded-2xl max-h-[85vh] flex flex-col overflow-hidden"
+        showCloseButton={true}
+      >
+        <DialogHeader className="pr-12 shrink-0">
+          <DialogTitle className="flex items-center gap-3">
             {isError ? (
               <XCircle className="h-5 w-5 text-destructive shrink-0" />
             ) : (
-              <CheckCircle className="h-5 w-5 text-success shrink-0" />
+              <CheckCircle className="h-5 w-5 text-green-500 shrink-0" />
             )}
-            <span className="truncate">{result.toolName}</span>
+            <span className="truncate flex-1 text-left">{result.toolName}</span>
             <Badge
               variant="secondary"
               className={cn(
-                "rounded-md text-xs font-medium ml-auto",
+                "rounded-md text-xs font-medium shrink-0",
                 isError
                   ? "bg-destructive/10 text-destructive border-destructive/20"
-                  : "bg-success/10 text-success border-success/20",
+                  : "bg-green-500/10 text-green-600 border-green-500/20",
               )}
             >
               {isError ? "Error" : "Success"}
