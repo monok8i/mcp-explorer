@@ -39,7 +39,7 @@ export function ResultsPanel({ results, onClear }: ResultsPanelProps) {
         )}
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 h-[calc(100vh-200px)]">
         <div className="p-4 space-y-3">
           {results.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
@@ -147,40 +147,59 @@ function ResultCard({ result }: ResultCardProps) {
           </DialogTitle>
           <p className="text-xs text-muted-foreground">{result.timestamp.toLocaleString()}</p>
         </DialogHeader>
-        <ScrollArea className="flex-1 -mx-6 px-6">
-          <div className="space-y-4 pb-4">
-            {/* Arguments */}
-            {Object.keys(result.arguments).length > 0 && (
+
+        <div className="flex-1 overflow-hidden min-h-0">
+          <ScrollArea className="h-full max-h-[calc(85vh-120px)]">
+            <div className="space-y-4 pr-4">
+              {/* Arguments */}
+              {Object.keys(result.arguments).length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Arguments</p>
+                  <ScrollArea className="max-h-48">
+                    <pre className="rounded-xl bg-muted p-3 text-xs font-mono break-all whitespace-pre-wrap overflow-hidden">
+                      {JSON.stringify(result.arguments, null, 2)}
+                    </pre>
+                  </ScrollArea>
+                </div>
+              )}
+
+              {/* Result Content */}
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-2">Arguments</p>
-                <pre className="overflow-auto rounded-lg bg-muted p-3 text-xs font-mono max-h-48">
-                  {JSON.stringify(result.arguments, null, 2)}
-                </pre>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-medium text-muted-foreground">Response</p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2.5 text-xs rounded-lg"
+                    onClick={handleCopy}
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-3 w-3 mr-1.5 text-green-500" />
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3 w-3 mr-1.5" />
+                        Copy
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <ScrollArea className="max-h-[50vh]">
+                  <pre
+                    className={cn(
+                      "rounded-xl p-3 text-xs font-mono whitespace-pre-wrap break-all overflow-hidden",
+                      isError ? "bg-destructive/10 text-destructive" : "bg-muted",
+                    )}
+                  >
+                    {getContentText()}
+                  </pre>
+                </ScrollArea>
               </div>
-            )}
-
-            {/* Result Content */}
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">Response</p>
-              <pre
-                className={cn(
-                  "overflow-auto rounded-lg p-3 text-xs font-mono whitespace-pre-wrap",
-                  isError ? "bg-destructive/10 text-destructive" : "bg-muted",
-                )}
-              >
-                {getContentText()}
-              </pre>
             </div>
-
-            {/* Raw JSON */}
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">Raw Response</p>
-              <pre className="overflow-auto rounded-lg bg-muted p-3 font-mono text-xs max-h-64">
-                {JSON.stringify(result.result, null, 2)}
-              </pre>
-            </div>
-          </div>
-        </ScrollArea>
+          </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   )
