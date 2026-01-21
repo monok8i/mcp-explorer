@@ -130,13 +130,22 @@ export function useMCPConnection() {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
-          throw new Error(errorData.detail || "Execution failed")
+          const errorMessage = errorData.detail || "Execution failed"
+          // Return error as ExecuteResult instead of throwing
+          return {
+            content: [{ type: "text", text: errorMessage }],
+            isError: true,
+          }
         }
 
         return await response.json()
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Execution failed")
-        return null
+        // Return error as ExecuteResult instead of setting error state
+        const errorMessage = err instanceof Error ? err.message : "Execution failed"
+        return {
+          content: [{ type: "text", text: errorMessage }],
+          isError: true,
+        }
       }
     },
     [connection],
